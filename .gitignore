@@ -36,3 +36,15 @@ fuzzgoat_ASAN
 
 # Generated files
 out/
+
+# AFL++ runtime output
+findings/
+findings/*
+
+# editor or system junk
+*.swp
+*.tmp
+*.log
+
+*.zip
+*.tar.gz
