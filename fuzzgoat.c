@@ -276,14 +276,14 @@ void json_value_free_ex (json_settings * settings, json_value * value)
 /******************************************************************************
  * BUG: BUG_FUZZGOAT_STACK_OVERFLOW
  * Type    : Stack-based buffer overflow
- * Trigger : Any JSON string exactly equal to "FUZZGOAT"
+ * Trigger : Any JSON string exactly equal to "FUZZ"
  ******************************************************************************/
          #ifdef BUG_FUZZGOAT_STACK_OVERFLOW
-            if (value->u.string.length == 8 &&
-               memcmp(value->u.string.ptr, "FUZZGOAT", 8) == 0) {
+            if (value->u.string.length == 4 &&
+               memcmp(value->u.string.ptr, "FUZZ", 4) == 0) {
 
                // allocate a small buffer on the stack
-               char local[4];
+               char local[1];
 
                // memcpy more data than the local buffer can hold --> overflow
                memcpy(local, value->u.string.ptr, value->u.string.length);
