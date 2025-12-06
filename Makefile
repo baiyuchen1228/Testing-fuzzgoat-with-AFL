@@ -1,17 +1,21 @@
-CC=afl-gcc
+CC=afl-clang-fast        # 建議使用這個，不要再用 afl-gcc
 DEPS=main.c fuzzgoat.c
-ASAN=-fsanitize=address
-CFLAGS=-I.
+CFLAGS=-g -O0 -Wall -I.
 LIBS=-lm
 
-all: $(DEPS)
-	$(CC) -o fuzzgoat $(CFLAGS) $^ $(LIBS)
-	$(CC) $(ASAN) -o fuzzgoat_ASAN $(CFLAGS) $^ $(LIBS)
+ASAN_FLAGS=-fsanitize=address
 
-afl: fuzzgoat
-	afl-fuzz -i in -o out ./fuzzgoat @@
+all: fuzzgoat fuzzgoat_ASAN
 
-.PHONY: clean
+fuzzgoat: $(DEPS)
+	$(CC) -o $@ $(CFLAGS) $^ $(LIBS)
+
+fuzzgoat_ASAN: $(DEPS)
+	clang -o $@ $(ASAN_FLAGS) $(CFLAGS) $^ $(LIBS)
+
+run:
+	afl-fuzz -i in -o out -- ./fuzzgoat @@
 
 clean:
-	rm ./fuzzgoat ./fuzzgoat_ASAN
+	rm -f fuzzgoat fuzzgoat_ASAN
+

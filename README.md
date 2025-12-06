@@ -18,6 +18,7 @@ To run Fuzzgoat with an input file, use:
 
 To start fuzzing with AFL++, use:
 ```
+export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
 afl-fuzz -i seeds -o findings -- ./fuzzgoat @@
 ```
 
@@ -67,6 +68,21 @@ With afl-fuzz in your PATH and a seed file in a directory called in/
 or simply:
 
 `make afl`
+
+or use the .sh
+`./run_afl_parallel.sh ./fuzzgoat ./in ./out 5`
+to monitor the state:
+`afl-whatsup ./out`
+
+[*] 所有 fuzzer 都已在背景啟動。
+    你可以用 'ps aux | grep afl-fuzz' 看目前狀態
+    或直接用 'afl-whatsup $OUTPUT_DIR' 查看整體 coverage/速率。
+
+[*] logs/ 底下有各 instance 的 log：
+    ls logs/
+[*] 要結束的話，直接 kill 這些 afl-fuzz process，或用:
+    pkill -f afl-fuzz
+
 
 
 Thank You
