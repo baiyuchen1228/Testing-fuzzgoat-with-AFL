@@ -35,6 +35,7 @@ fuzzgoat_ASAN
 *.su
 
 # Generated files
+seeds/
 out/
 
 # AFL++ runtime output
