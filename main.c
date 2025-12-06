@@ -147,7 +147,7 @@ int main(int argc, char** argv)
         }
         fclose(fp);
 
-        printf("%s\n", file_contents);
+        // printf("%s\n", file_contents);
 
         printf("--------------------------------\n\n");
 
