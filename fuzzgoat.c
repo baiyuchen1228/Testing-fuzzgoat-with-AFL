@@ -38,6 +38,13 @@
 // enable to trigger stack overflow vulnerability
 // #define BUG_FUZZGOAT_STACK_OVERFLOW 
 
+// old bug flag
+// #define BUG_FUZZGOAT_USE_AFTER_FREE
+// #define BUG_FUZZGOAT_INVALID_READ
+// #define BUG_FUZZGOAT_INVALID_FREE
+// #define BUG_FUZZGOAT_NULL_DEREFERENCE
+
+
 const struct _json_value json_value_none;
 
 #include <stdio.h>
@@ -136,8 +143,9 @@ static int new_value (json_state * state,
   Input File - emptyArray
 	Triggers   - Use after free in json_value_free()
 ******************************************************************************/
-
+            #ifdef BUG_FUZZGOAT_USE_AFTER_FREE
                free(*top);
+            #endif
 /****** END vulnerable code **************************************************/
 
                break;
@@ -257,8 +265,9 @@ void json_value_free_ex (json_settings * settings, json_value * value)
   Input File - validObject
   Triggers   - Invalid free in the above if-statement
 ******************************************************************************/
-
+         #ifdef BUG_FUZZGOAT_INVALID_READ
             value = value->u.object.values [value->u.object.length--].value;
+         #endif
 /****** END vulnerable code **************************************************/
 
             continue;
@@ -299,10 +308,11 @@ void json_value_free_ex (json_settings * settings, json_value * value)
   Input File - emptyString
   Triggers   - Invalid free on decremented value->u.string.ptr
 ******************************************************************************/
-            
+         #ifdef BUG_FUZZGOAT_INVALID_FREE
             if (!value->u.string.length){
               value->u.string.ptr--;
             }
+         #endif
 /****** END vulnerable code **************************************************/
 
 
@@ -317,11 +327,12 @@ void json_value_free_ex (json_settings * settings, json_value * value)
   Input File - oneByteString
   Triggers   - NULL pointer dereference
 ******************************************************************************/
-
+         #ifdef BUG_FUZZGOAT_NULL_DEREFERENCE
             if (value->u.string.length == 1) {
               char *null_pointer = NULL;
               printf ("%d", *null_pointer);
             }
+         #endif
 /****** END vulnerable code **************************************************/
 
             settings->mem_free (value->u.string.ptr, settings->user_data);
