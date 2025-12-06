@@ -35,6 +35,9 @@
    #endif
 #endif
 
+// enable to trigger stack overflow vulnerability
+// #define BUG_FUZZGOAT_STACK_OVERFLOW 
+
 const struct _json_value json_value_none;
 
 #include <stdio.h>
@@ -261,7 +264,29 @@ void json_value_free_ex (json_settings * settings, json_value * value)
             continue;
 
          case json_string:
+/******************************************************************************
+ * BUG: BUG_FUZZGOAT_STACK_OVERFLOW
+ * Type    : Stack-based buffer overflow
+ * Trigger : Any JSON string exactly equal to "FUZZGOAT"
+ ******************************************************************************/
+         #ifdef BUG_FUZZGOAT_STACK_OVERFLOW
+            if (value->u.string.length == 8 &&
+               memcmp(value->u.string.ptr, "FUZZGOAT", 8) == 0) {
 
+               // allocate a small buffer on the stack
+               char local[4];
+
+               // memcpy more data than the local buffer can hold --> overflow
+               memcpy(local, value->u.string.ptr, value->u.string.length);
+
+               // prevent the compiler optimization
+               if (local[0] == 'X') {
+                     printf("X\n");
+               }
+            }
+         #endif
+/****** END FUZZGOAT_STACK_OVERFLOW *******************************************/
+    
 /******************************************************************************
   WARNING: Fuzzgoat Vulnerability
   
@@ -274,7 +299,7 @@ void json_value_free_ex (json_settings * settings, json_value * value)
   Input File - emptyString
   Triggers   - Invalid free on decremented value->u.string.ptr
 ******************************************************************************/
-
+            
             if (!value->u.string.length){
               value->u.string.ptr--;
             }
