@@ -1,8 +1,0 @@
-{
-  "meta": {
-    "mode": "debug"
-  },
-  "data": {
-    "value": "BOOM"
-  }
-}
