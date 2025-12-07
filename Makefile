@@ -10,17 +10,14 @@ VULN_SOURCES=vuln_printf_string.c
 VULN_OBJECTS=$(VULN_SOURCES:.c=.o)
 
 # 定義漏洞類型與編譯選項的映射
-VULN_use-after-free=-DBUG_USE_AFTER_FREE
-VULN_invalid-free=-DBUG_INVALID_FREE
-VULN_null-deref=-DBUG_NULL_DEREF
-VULN_stack-overflow=-DBUG_STACK_OVERFLOW
-VULN_heap-overflow=-DBUG_HEAP_OVERFLOW
-VULN_integer-overflow=-DBUG_INTEGER_OVERFLOW
-VULN_format-string=-DBUG_FORMAT_STRING
+
 VULN_ORIGINAL=-DBUG_ORIGINAL
+VULN_stack-overflow=-DBUG_STACK_OVERFLOW
+VULN_format-string=-DBUG_FORMAT_STRING
+
 
 # 所有漏洞類型
-BUGS=use-after-free invalid-free null-deref stack-overflow heap-overflow integer-overflow format-string
+BUGS=stack-overflow format-string
 
 
 # all: $(DEPS)
