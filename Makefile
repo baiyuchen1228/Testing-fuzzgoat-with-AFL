@@ -1,5 +1,5 @@
 CC=afl-gcc
-DEPS=main.c fuzzgoat.c
+DEPS=main.c fuzzgoat_bai.c
 ASAN=-fsanitize=address
 CFLAGS=-I.
 LIBS=-lm
