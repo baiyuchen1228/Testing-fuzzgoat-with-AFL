@@ -147,6 +147,7 @@ int main(int argc, char** argv)
         }
         fclose(fp);
 
+        // unexpected bug
         // printf("%s\n", file_contents);
 
         printf("--------------------------------\n\n");
