@@ -21,7 +21,7 @@ void vuln_printf_string(json_value* value)
 
         #else
         #ifdef BUG_STACK_OVERFLOW
-        printf("using stack buffer to copy string\n");
+        // printf("using stack buffer to copy string\n");
         char buffer[1024];
         strcpy(buffer, value->u.string.ptr);
         
