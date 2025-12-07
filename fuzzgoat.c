@@ -41,6 +41,9 @@
 // enable to trigger object with int and string vulnerability
 // #define BUG_OBJECT_WITH_INT_AND_STRING
 
+// enable to trigger deep nested array vulnerability
+// #define BUG_DEEP_NESTED_ARRAY
+
 // old bug flag
 // #define BUG_FUZZGOAT_USE_AFTER_FREE
 // #define BUG_FUZZGOAT_INVALID_READ
@@ -238,6 +241,38 @@ void json_value_free_ex (json_settings * settings, json_value * value)
       switch (value->type)
       {
          case json_array:
+/******************************************************************************
+  WARNING: Fuzzgoat Vulnerability
+
+  The code below triggers a stack-based buffer overflow when the nesting depth
+  of JSON arrays is large enough. It walks up the parent chain counting
+  consecutive array nodes and then writes depth * 8 bytes into an 8-byte
+  stack buffer.
+
+  Diff       - Added depth computation and unsafe memset()
+  Payload    - [[[[123]]]]
+  Input File - deepArray
+  Triggers   - Stack buffer overflow in memset()
+
+******************************************************************************/
+            #ifdef BUG_DEEP_NESTED_ARRAY
+               int depth = 0;
+               json_value *cur = value;
+
+               // count depth of nested arrays
+               while (cur && cur->type == json_array) {
+                  depth++;
+                  cur = cur->parent;
+               }
+
+               if (depth >= 4) {
+                  char buf[8];
+                  // depth >=4 leads to overflow here
+                  memset(buf, 'Z', depth * 2 + 1);
+               }
+            #endif
+/****** END DEEP_NESTED_ARRAY *************************************************/
+
 
             if (!value->u.array.length)
             {
