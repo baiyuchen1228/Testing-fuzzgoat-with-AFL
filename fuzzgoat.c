@@ -38,6 +38,9 @@
 // enable to trigger stack overflow vulnerability
 // #define BUG_FUZZGOAT_STACK_OVERFLOW 
 
+// enable to trigger object with int and string vulnerability
+// #define BUG_OBJECT_WITH_INT_AND_STRING
+
 // old bug flag
 // #define BUG_FUZZGOAT_USE_AFTER_FREE
 // #define BUG_FUZZGOAT_INVALID_READ
@@ -247,6 +250,50 @@ void json_value_free_ex (json_settings * settings, json_value * value)
 
          case json_object:
 
+/******************************************************************************
+  WARNING: Fuzzgoat Vulnerability
+
+  The code below triggers a heap buffer overflow when a JSON object contains:
+    - At least one string field
+    - At least one integer field greater than 20
+
+  Diff       - Added structural checks and overflow based on integer value
+  Payload    - {"a":"x","b":50}
+  Input File - objectStringLargeInt
+  Triggers   - Heap buffer overflow in memset()
+
+******************************************************************************/
+
+            #ifdef BUG_OBJECT_WITH_INT_AND_STRING
+            
+               int has_string = 0;
+               int has_large_int = 0;
+               json_int_t large_val = 0;
+
+               for (unsigned int i = 0; i < value->u.object.length; i++) {
+                  json_object_entry *e = &value->u.object.values[i];
+                  json_value *v = e->value;
+
+                  if (v->type == json_string)
+                        has_string = 1;
+
+                  if (v->type == json_integer && v->u.integer > 20) {
+                        has_large_int = 1;
+                        large_val = v->u.integer;
+                  }
+               }
+
+               if (has_string && has_large_int) {
+                  char *buf = settings->mem_alloc(16, 0, settings->user_data);
+                  if (!buf) break;
+
+                  memset(buf, 'A', (size_t)large_val);  // overflow if > 16
+                  settings->mem_free(buf, settings->user_data);
+               }
+  
+            #endif
+/****** END OBJECT_WITH_INT_AND_STRING ***************************************/
+
             if (!value->u.object.length)
             {
                settings->mem_free (value->u.object.values, settings->user_data);
@@ -266,7 +313,10 @@ void json_value_free_ex (json_settings * settings, json_value * value)
   Triggers   - Invalid free in the above if-statement
 ******************************************************************************/
          #ifdef BUG_FUZZGOAT_INVALID_READ
-            value = value->u.object.values [value->u.object.length--].value;
+            value = value->u.object.values[value->u.object.length--].value;
+         #else
+            // correct version
+            value = value->u.object.values[--value->u.object.length].value;
          #endif
 /****** END vulnerable code **************************************************/
 
@@ -276,11 +326,11 @@ void json_value_free_ex (json_settings * settings, json_value * value)
 /******************************************************************************
  * BUG: BUG_FUZZGOAT_STACK_OVERFLOW
  * Type    : Stack-based buffer overflow
- * Trigger : Any JSON string exactly equal to "FUZZ"
+ * Trigger : Any JSON string first 2 char equal to "HI"
  ******************************************************************************/
          #ifdef BUG_FUZZGOAT_STACK_OVERFLOW
-            if (value->u.string.length == 4 &&
-               memcmp(value->u.string.ptr, "FUZZ", 4) == 0) {
+            if (value->u.string.length >= 2 &&
+               memcmp(value->u.string.ptr, "HI", 2) == 0) {
 
                // allocate a small buffer on the stack
                char local[1];
