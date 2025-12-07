@@ -33,6 +33,8 @@
 
 #include "fuzzgoat.h"
 
+#include "vulneribility.h"
+
 
 static void print_depth_shift(int depth)
 {
@@ -97,7 +99,8 @@ static void process_value(json_value* value, int depth)
                         printf("double: %f\n", value->u.dbl);
                         break;
                 case json_string:
-                        printf("string: %s\n", value->u.string.ptr);
+                        // printf("string: %s\n", value->u.string.ptr);
+                        vuln_format_string(value);
                         break;
                 case json_boolean:
                         printf("bool: %d\n", value->u.boolean);
