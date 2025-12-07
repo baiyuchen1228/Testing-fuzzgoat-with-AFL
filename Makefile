@@ -5,7 +5,8 @@ CFLAGS=-I.
 LIBS=-lm
 
 # 定義漏洞源文件映射
-VULN_SOURCES=vuln_format_string.c vuln_stack_overflow.c vuln_heap_overflow.c vuln_integer_overflow.c
+VULN_SOURCES=vuln_printf_string.c 
+			  
 VULN_OBJECTS=$(VULN_SOURCES:.c=.o)
 
 # 定義漏洞類型與編譯選項的映射
@@ -16,6 +17,7 @@ VULN_stack-overflow=-DBUG_STACK_OVERFLOW
 VULN_heap-overflow=-DBUG_HEAP_OVERFLOW
 VULN_integer-overflow=-DBUG_INTEGER_OVERFLOW
 VULN_format-string=-DBUG_FORMAT_STRING
+VULN_ORIGINAL=-DBUG_ORIGINAL
 
 # 所有漏洞類型
 BUGS=use-after-free invalid-free null-deref stack-overflow heap-overflow integer-overflow format-string
@@ -35,10 +37,10 @@ all: fuzzgoat fuzzgoat_ASAN
 
 # 原始版本（包含所有漏洞）
 fuzzgoat: main.c fuzzgoat.c $(VULN_SOURCES) vulneribility.h
-	$(CC) -o $@ $(CFLAGS) main.c fuzzgoat.c $(VULN_SOURCES) $(LIBS)
+	$(CC) -DBUG_ORIGINAL -o $@ $(CFLAGS) main.c fuzzgoat.c $(VULN_SOURCES) $(LIBS)
 
 fuzzgoat_ASAN: main.c fuzzgoat.c $(VULN_SOURCES) vulneribility.h
-	$(CC) $(ASAN) -o $@ $(CFLAGS) main.c fuzzgoat.c $(VULN_SOURCES) $(LIBS)
+	$(CC) -DBUG_ORIGINAL $(ASAN) -o $@ $(CFLAGS) main.c fuzzgoat.c $(VULN_SOURCES) $(LIBS)
 
 # 編譯特定漏洞版本的模式規則
 fuzzgoat-%: main.c fuzzgoat.c $(VULN_SOURCES) vulneribility.h

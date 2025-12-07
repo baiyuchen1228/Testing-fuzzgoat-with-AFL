@@ -73,6 +73,7 @@ static void process_array(json_value* value, int depth)
         }
 }
 
+
 static void process_value(json_value* value, int depth)
 {
         int j;
@@ -100,7 +101,7 @@ static void process_value(json_value* value, int depth)
                         break;
                 case json_string:
                         // printf("string: %s\n", value->u.string.ptr);
-                        vuln_format_string(value);
+                        vuln_printf_string(value);
                         break;
                 case json_boolean:
                         printf("bool: %d\n", value->u.boolean);

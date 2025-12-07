@@ -36,6 +36,71 @@ def rand_value(depth=0):
     if t == "null":
         return None
 
+def generate_large_nested_objects():
+    """生成大型巢狀物件測試案例"""
+    cases = []
+    
+    # Case 1: 簡單的超長字串值
+    cases.append({"A": "A" * 10000})
+    cases.append({"A": "A" * 50000})
+    cases.append({"A": "A" * 100000})
+    
+    # Case 2: 巢狀物件中的超長字串值
+    cases.append({"meta": {"mode": "debug"}, "data": {"value": "B" * 10000}})
+    cases.append({"meta": {"mode": "debug"}, "data": {"value": "B" * 50000}})
+    cases.append({"meta": {"mode": "debug"}, "data": {"value": "B" * 100000}})
+    
+    # Case 3: 多個巢狀層級，每層都有大字串
+    cases.append({
+        "level1": {
+            "level2": {
+                "level3": {
+                    "data": "C" * 10000
+                }
+            }
+        }
+    })
+    
+    # Case 4: 多個鍵值對，每個值都很大
+    cases.append({
+        "field1": "D" * 5000,
+        "field2": "E" * 5000,
+        "field3": "F" * 5000
+    })
+    
+    # Case 5: 巢狀物件加上多個大字串欄位
+    cases.append({
+        "meta": {
+            "mode": "debug",
+            "config": "G" * 10000
+        },
+        "data": {
+            "value": "H" * 10000,
+            "extra": "I" * 10000
+        }
+    })
+    
+    # Case 6: 深度巢狀加上大字串
+    obj = {"data": "J" * 10000}
+    for i in range(10):
+        obj = {"level": obj}
+    cases.append(obj)
+    
+    # Case 7: 陣列中包含大字串
+    cases.append({"items": ["K" * 10000, "L" * 10000]})
+    
+    # Case 8: 混合巢狀結構
+    cases.append({
+        "config": {
+            "settings": {
+                "options": ["M" * 5000, "N" * 5000]
+            }
+        },
+        "payload": "O" * 20000
+    })
+    
+    return cases
+
 def generate_edge_case_seeds():
     """生成邊界案例和特殊測試案例"""
     return [
@@ -54,6 +119,7 @@ def generate_edge_case_seeds():
         [[[]]],  # 巢狀陣列
         {"a": {"b": {"c": 1}}},  # 巢狀物件
         [1, "a", True, None],  # 混合類型
+        {"meta": {"mode": "debug"}, "data": {"value": "BOOM"}},  # 雙層巢狀物件
     ]
 
 def generate_malformed_json_seeds():
@@ -130,11 +196,21 @@ if __name__ == "__main__":
                         help='只生成簡單的邊界案例種子（忽略 -n 參數）')
     parser.add_argument('--malformed', action='store_true',
                         help='包含畸形/錯誤的 JSON 種子')
+    parser.add_argument('--large', action='store_true',
+                        help='生成大型測資（巢狀物件與長字串）')
     args = parser.parse_args()
     
     os.makedirs("seeds", exist_ok=True)
     
-    if args.simple:
+    if args.large:
+        # 生成大型測資
+        large_cases = generate_large_nested_objects()
+        print(f"正在生成 {len(large_cases)} 個大型測資種子檔案...")
+        for i, case in enumerate(large_cases):
+            with open(f"seeds/large_{i}.json", "w") as f:
+                json.dump(case, f)
+        print(f"完成！已生成 {len(large_cases)} 個大型測資種子檔案至 seeds/ 目錄")
+    elif args.simple:
         # 只生成邊界案例
         edge_cases = generate_edge_case_seeds()
         print(f"正在生成 {len(edge_cases)} 個邊界案例種子檔案...")
