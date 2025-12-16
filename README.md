@@ -1,34 +1,3 @@
-
-To install AFL++ on Ubuntu, you can use the following commands:
-```
-sudo apt update
-sudo apt install afl++
-``` 
-
-To build Fuzzgoat with afl-clang-fast, run:
-```
-cd fuzzgoat
-CC=afl-clang-fast CXX=afl-clang-fast++ make
-```
-
-To run Fuzzgoat with an input file, use:
-```
-./fuzzgoat input.txt
-```
-
-To start fuzzing with AFL++, use:
-```
-afl-fuzz -i seeds -o findings -- ./fuzzgoat @@
-```
-
-To debug a crash found by AFL++, use gdb as follows:
-```
-gdb ./fuzzgoat
-(gdb) run < findings/crashes/id:000012*
-(gdb) bt
-```
-
-
 Welcome to Fuzzgoat
 ===================
 

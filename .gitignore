@@ -35,17 +35,4 @@ fuzzgoat_ASAN
 *.su
 
 # Generated files
-seeds/
 out/
-
-# AFL++ runtime output
-findings/
-findings/*
-
-# editor or system junk
-*.swp
-*.tmp
-*.log
-
-*.zip
-*.tar.gz
