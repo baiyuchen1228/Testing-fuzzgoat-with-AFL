@@ -36,16 +36,16 @@
 #endif
 
 // enable to trigger vulnerabilities
-#define BUG_FUZZGOAT_USE_AFTER_FREE      // Bug 1
-#define BUG_FUZZGOAT_INVALID_READ        // Bug 2
-#define BUG_FUZZGOAT_INVALID_FREE        // Bug 3
-#define BUG_FUZZGOAT_NULL_DEREFERENCE    // Bug 4
-#define BUG_DEEP_NESTED_ARRAY            // Bug 5
-#define BUG_OBJECT_WITH_INT_AND_STRING   // Bug 6
-#define BUG_FUZZGOAT_STACK_OVERFLOW      // Bug 7
-#define BUG_BAI_STRING_OVERFLOW          // Bug 8
-#define BUG_BAI_INT_ARRAY                // Bug 9
-#define BUG_BAI_NESTED_OBJECT            // Bug 10
+// #define BUG_FUZZGOAT_USE_AFTER_FREE      // Bug 1
+// #define BUG_FUZZGOAT_INVALID_READ        // Bug 2
+// #define BUG_FUZZGOAT_INVALID_FREE        // Bug 3
+// #define BUG_FUZZGOAT_NULL_DEREFERENCE    // Bug 4
+// #define BUG_DEEP_NESTED_ARRAY            // Bug 5
+// #define BUG_OBJECT_WITH_INT_AND_STRING   // Bug 6
+// #define BUG_FUZZGOAT_STACK_OVERFLOW      // Bug 7
+// #define BUG_STRING_OVERFLOW              // Bug 8
+// #define BUG_INT_ARRAY                    // Bug 9
+// #define BUG_NESTED_OBJECT                // Bug 10
 
 const struct _json_value json_value_none;
 
@@ -626,7 +626,7 @@ json_value * json_parse_ex (json_settings * settings,
                if (!state.first_pass)
                {
                   string [string_length] = 0;
-#ifdef BUG_BAI_STRING_OVERFLOW
+#ifdef BUG_STRING_OVERFLOW
                   /******************************************************************************
                     WARNING: Fuzzgoat Vulnerability
                     
@@ -1112,7 +1112,7 @@ json_value * json_parse_ex (json_settings * settings,
 
             if (!state.first_pass)
             {
-#ifdef BUG_BAI_INT_ARRAY
+#ifdef BUG_INT_ARRAY
                /******************************************************************************
                 WARNING: Fuzzgoat Vulnerability
                 
@@ -1144,7 +1144,7 @@ json_value * json_parse_ex (json_settings * settings,
                }
 #endif
                
-#ifdef BUG_BAI_NESTED_OBJECT
+#ifdef BUG_NESTED_OBJECT
                /******************************************************************************
                 WARNING: Fuzzgoat Vulnerability
                 
@@ -1152,7 +1152,7 @@ json_value * json_parse_ex (json_settings * settings,
                 for a specific nested object structure: two objects, each with one string property.
 
                 Diff       - Added structural checks for nested objects and call to crash()
-                Payload    - {"obj1":{"key1":"value1"}, "obj2":{"key2":"value2"}}
+                Payload    - {"obj1":{"key1":value1}, "obj2":{"key2":value2}}
                 Input File - nestedObject
                 Triggers   - NULL pointer dereference / SIGSEGV
                ******************************************************************************/
@@ -1161,17 +1161,9 @@ json_value * json_parse_ex (json_settings * settings,
                   json_value* obj1 = top->u.object.values[0].value;
                   json_value* obj2 = top->u.object.values[1].value;
 
-                  if (obj1 && obj1->type == json_object && obj1->u.object.length == 1 &&
-                     obj2 && obj2->type == json_object && obj2->u.object.length == 1)
+                  if (obj1 && obj1->type == json_object && obj2 && obj2->type == json_object)
                   {
-                     json_value* nested_val1 = obj1->u.object.values[0].value;
-                     json_value* nested_val2 = obj2->u.object.values[0].value;
-
-                     if (nested_val1 && nested_val1->type == json_string &&
-                        nested_val2 && nested_val2->type == json_string)
-                     {
-                        crash(10);
-                     }
+                     crash(10);
                   }
                }
 #endif
