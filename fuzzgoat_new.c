@@ -1143,30 +1143,6 @@ json_value * json_parse_ex (json_settings * settings,
                   }
                }
 #endif
-
-#ifdef BUG_NESTED_OBJECT
-               /******************************************************************************
-                WARNING: Fuzzgoat Vulnerability
-
-                The code below triggers a NULL pointer dereference (SIGSEGV via crash())
-                for a specific nested object structure: two objects, each with one string property.
-
-                Diff       - Added structural checks for nested objects and call to crash()
-                Payload    - {"obj1":{"key1":value1}, "obj2":{"key2":value2}}
-                Input File - nestedObject
-                Triggers   - NULL pointer dereference / SIGSEGV
-               ******************************************************************************/
-               if (top->type == json_object && top->u.object.length == 2)
-               {
-                  json_value* obj1 = top->u.object.values[0].value;
-                  json_value* obj2 = top->u.object.values[1].value;
-
-                  if (obj1 && obj1->type == json_object && obj2 && obj2->type == json_object)
-                  {
-                     crash(10);
-                  }
-               }
-#endif
             }
 
             if (!top->parent)
