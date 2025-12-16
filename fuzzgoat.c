@@ -35,12 +35,34 @@
    #endif
 #endif
 
+// enable to trigger vulnerabilities
+// #define BUG_FUZZGOAT_USE_AFTER_FREE      // Bug 1
+// #define BUG_FUZZGOAT_INVALID_READ        // Bug 2
+// #define BUG_FUZZGOAT_INVALID_FREE        // Bug 3
+// #define BUG_FUZZGOAT_NULL_DEREFERENCE    // Bug 4
+// #define BUG_DEEP_NESTED_ARRAY            // Bug 5
+// #define BUG_OBJECT_WITH_INT_AND_STRING   // Bug 6
+// #define BUG_FUZZGOAT_STACK_OVERFLOW      // Bug 7
+// #define BUG_STRING_OVERFLOW              // Bug 8
+// #define BUG_INT_ARRAY                    // Bug 9
+// #define BUG_NESTED_OBJECT                // Bug 10
+
 const struct _json_value json_value_none;
 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+
+volatile int g_bug_id = -1;
+
+__attribute__((noinline, noreturn))
+void crash(int id) {
+    g_bug_id = id;
+    fprintf(stderr, "BUG_ID=%d\n", id);
+    *(volatile int *)0 = 1;
+    __builtin_unreachable();
+}
 
 typedef unsigned int json_uchar;
 
@@ -120,23 +142,23 @@ static int new_value (json_state * state,
 
             if (value->u.array.length == 0)
             {
-
+#ifdef BUG_FUZZGOAT_USE_AFTER_FREE
 /******************************************************************************
-	WARNING: Fuzzgoat Vulnerability
-	
-	The line of code below frees the memory block referenced by *top if 
-	the length of a JSON array is 0. The program attempts to use that memory
-	block later in the program.
+  WARNING: Fuzzgoat Vulnerability
+  
+  The line of code below frees the memory block referenced by *top if 
+  the length of a JSON array is 0. The program attempts to use that memory
+  block later in the program.
 
-	Diff       - Added: free(*top);
-	Payload    - An empty JSON array: []
+  Diff       - Added: free(*top);
+  Payload    - An empty JSON array: []
   Input File - emptyArray
-	Triggers   - Use after free in json_value_free()
+  Triggers   - Use after free in json_value_free()
 ******************************************************************************/
 
                free(*top);
 /****** END vulnerable code **************************************************/
-
+#endif
                break;
             }
 
@@ -224,6 +246,36 @@ void json_value_free_ex (json_settings * settings, json_value * value)
       switch (value->type)
       {
          case json_array:
+#ifdef BUG_DEEP_NESTED_ARRAY
+/******************************************************************************
+  WARNING: Fuzzgoat Vulnerability
+  
+  The code below triggers a stack-based buffer overflow (SIGSEGV via crash())
+  when the nesting depth of JSON arrays is large enough. It walks up the
+  parent chain counting consecutive array nodes and then calls crash() for the SIGSEGV.
+
+  Diff       - Added depth computation and call to crash()
+  Payload    - [[[[123]]]]
+  Input File - deepArray
+  Triggers   - Stack buffer overflow / SIGSEGV
+******************************************************************************/
+            {
+               int depth = 0;
+               json_value *cur = value;
+
+               // count depth of nested arrays
+               while (cur && cur->type == json_array) {
+                  depth++;
+                  cur = cur->parent;
+               }
+
+               if (depth >= 4) {
+                  crash(5);
+               }
+            }
+/****** END vulnerable code *************************************************/
+#endif
+
 
             if (!value->u.array.length)
             {
@@ -236,12 +288,53 @@ void json_value_free_ex (json_settings * settings, json_value * value)
 
          case json_object:
 
+#ifdef BUG_OBJECT_WITH_INT_AND_STRING
+/******************************************************************************
+  WARNING: Fuzzgoat Vulnerability
+  
+  The code below triggers a heap buffer overflow (SIGSEGV via crash())
+  when a JSON object contains:
+  - At least one string field
+  - At least one integer field greater than 20.
+
+  Diff       - Added structural checks and call to crash() based on integer value
+  Payload    - {"a":"x","b":50}
+  Input File - objectStringLargeInt
+  Triggers   - Heap buffer overflow / SIGSEGV
+******************************************************************************/
+            {
+               int has_string = 0;
+               int has_large_int = 0;
+
+               for (unsigned int i = 0; i < value->u.object.length; i++) {
+                  json_object_entry *e = &value->u.object.values[i];
+                  json_value *v = e->value;
+
+                  if (v->type == json_string)
+                  {
+                        has_string = 1;
+                  }
+
+                  if (v->type == json_integer && v->u.integer > 20)
+                  {
+                        has_large_int = 1;
+                  }
+               }
+
+               if (has_string && has_large_int) {
+                  crash(6);
+               }
+            }
+/****** END vulnerable code ***************************************/
+#endif
+
             if (!value->u.object.length)
             {
                settings->mem_free (value->u.object.values, settings->user_data);
                break;
             }
 
+#ifdef BUG_FUZZGOAT_INVALID_READ
 /******************************************************************************
   WARNING: Fuzzgoat Vulnerability
   
@@ -254,14 +347,35 @@ void json_value_free_ex (json_settings * settings, json_value * value)
   Input File - validObject
   Triggers   - Invalid free in the above if-statement
 ******************************************************************************/
-
             value = value->u.object.values [value->u.object.length--].value;
 /****** END vulnerable code **************************************************/
+#else
+            value = value->u.object.values [-- value->u.object.length].value;
+#endif
 
             continue;
 
          case json_string:
+#ifdef BUG_FUZZGOAT_STACK_OVERFLOW
+/******************************************************************************
+  WARNING: Fuzzgoat Vulnerability
+  
+  The code below triggers a stack-based buffer overflow (SIGSEGV via crash())
+  when processing a JSON string whose first 2 characters are "HI".
 
+  Diff       - Added check for "HI" string prefix and call to crash()
+  Payload    - "HI..." (any string starting with HI)
+  Input File - hiString
+  Triggers   - Stack buffer overflow / SIGSEGV
+******************************************************************************/
+            if (value->u.string.length >= 2 &&
+               memcmp(value->u.string.ptr, "HI", 2) == 0) {
+                   crash(7);
+            }
+/****** END vulnerable code *******************************************/
+#endif
+
+#ifdef BUG_FUZZGOAT_INVALID_FREE
 /******************************************************************************
   WARNING: Fuzzgoat Vulnerability
   
@@ -274,16 +388,17 @@ void json_value_free_ex (json_settings * settings, json_value * value)
   Input File - emptyString
   Triggers   - Invalid free on decremented value->u.string.ptr
 ******************************************************************************/
-
             if (!value->u.string.length){
               value->u.string.ptr--;
             }
 /****** END vulnerable code **************************************************/
+#endif
 
 
+#ifdef BUG_FUZZGOAT_NULL_DEREFERENCE
 /******************************************************************************
   WARNING: Fuzzgoat Vulnerability
-
+  
   The code below creates and dereferences a NULL pointer if the string
   is of length one.
 
@@ -298,6 +413,7 @@ void json_value_free_ex (json_settings * settings, json_value * value)
               printf ("%d", *null_pointer);
             }
 /****** END vulnerable code **************************************************/
+#endif
 
             settings->mem_free (value->u.string.ptr, settings->user_data);
             break;
@@ -326,7 +442,7 @@ static const long
    flag_next             = 1 << 0,
    flag_reproc           = 1 << 1,
    flag_need_comma       = 1 << 2,
-   flag_seek_value       = 1 << 3, 
+   flag_seek_value       = 1 << 3,
    flag_escaped          = 1 << 4,
    flag_string           = 1 << 5,
    flag_need_colon       = 1 << 6,
@@ -394,7 +510,7 @@ json_value * json_parse_ex (json_settings * settings,
       for (state.ptr = json ;; ++ state.ptr)
       {
          json_char b = (state.ptr == end ? 0 : *state.ptr);
-         
+
          if (flags & flag_string)
          {
             if (!b)
@@ -418,7 +534,7 @@ json_value * json_parse_ex (json_settings * settings,
                   case 't':  string_add ('\t');  break;
                   case 'u':
 
-                    if (end - state.ptr < 4 || 
+                    if (end - state.ptr < 4 ||
                         (uc_b1 = hex_value (*++ state.ptr)) == 0xFF ||
                         (uc_b2 = hex_value (*++ state.ptr)) == 0xFF ||
                         (uc_b3 = hex_value (*++ state.ptr)) == 0xFF ||
@@ -434,7 +550,7 @@ json_value * json_parse_ex (json_settings * settings,
 
                     if ((uchar & 0xF800) == 0xD800) {
                         json_uchar uchar2;
-                        
+
                         if (end - state.ptr < 6 || (*++ state.ptr) != '\\' || (*++ state.ptr) != 'u' ||
                             (uc_b1 = hex_value (*++ state.ptr)) == 0xFF ||
                             (uc_b2 = hex_value (*++ state.ptr)) == 0xFF ||
@@ -448,7 +564,7 @@ json_value * json_parse_ex (json_settings * settings,
                         uc_b1 = (uc_b1 << 4) | uc_b2;
                         uc_b2 = (uc_b3 << 4) | uc_b4;
                         uchar2 = (uc_b1 << 8) | uc_b2;
-                        
+
                         uchar = 0x010000 | ((uchar & 0x3FF) << 10) | (uchar2 & 0x3FF);
                     }
 
@@ -509,7 +625,26 @@ json_value * json_parse_ex (json_settings * settings,
             if (b == '"')
             {
                if (!state.first_pass)
+               {
                   string [string_length] = 0;
+#ifdef BUG_STRING_OVERFLOW
+/******************************************************************************
+  WARNING: Fuzzgoat Vulnerability
+  
+  The code below triggers a buffer overflow (SIGSEGV via crash())
+  when reading a string of length 50 or more during the first pass.
+
+  Diff       - Added length check and call to crash()
+  Payload    - "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" (50+ 'A's)
+  Input File - longString
+  Triggers   - Buffer overflow / SIGSEGV
+******************************************************************************/
+                  if (string_length >= 50)
+                  {
+                     crash(8);
+                  }
+#endif
+               }
 
                flags &= ~ flag_string;
                string = 0;
@@ -528,7 +663,7 @@ json_value * json_parse_ex (json_settings * settings,
                      if (state.first_pass)
                         (*(json_char **) &top->u.object.values) += string_length + 1;
                      else
-                     {  
+                     {
                         top->u.object.values [top->u.object.length].name
                            = (json_char *) top->_reserved.object_mem;
 
@@ -673,7 +808,7 @@ json_value * json_parse_ex (json_settings * settings,
                         continue;
                      }
                      else
-                     { 
+                     {
                         sprintf (error, "%d:%d: Expected : before %c",
                                  state.cur_line, state.cur_col, b);
 
@@ -811,7 +946,7 @@ json_value * json_parse_ex (json_settings * settings,
             switch (top->type)
             {
             case json_object:
-               
+
                switch (b)
                {
                   whitespace:
@@ -830,7 +965,7 @@ json_value * json_parse_ex (json_settings * settings,
                      string_length = 0;
 
                      break;
-                  
+
                   case '}':
 
                      flags = (flags & ~ flag_need_comma) | flag_next;
@@ -976,6 +1111,41 @@ json_value * json_parse_ex (json_settings * settings,
          {
             flags = (flags & ~ flag_next) | flag_need_comma;
 
+            if (!state.first_pass)
+            {
+#ifdef BUG_INT_ARRAY
+               /******************************************************************************
+                WARNING: Fuzzgoat Vulnerability
+
+                The code below triggers a NULL pointer dereference (SIGSEGV via crash())
+                if a JSON array with more than 8 integer elements is encountered.
+
+                Diff       - Added checks for array type, length, and element type, then call to crash()
+                Payload    - {"class": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+                Input File - longIntArray
+                Triggers   - NULL pointer dereference / SIGSEGV
+               ******************************************************************************/
+               if (top->type == json_array && top->u.array.length > 8)
+               {
+                  int is_int_array = 1;
+                  // Check if the first 8 elements are integers
+                  for(int i=0; i < 8; ++i)
+                  {
+                     if(top->u.array.values[i]->type != json_integer)
+                     {
+                        is_int_array = 0;
+                        break;
+                     }
+                  }
+
+                  if(is_int_array)
+                  {
+                     crash(9);
+                  }
+               }
+#endif
+            }
+
             if (!top->parent)
             {
                /* root value done */
@@ -986,7 +1156,7 @@ json_value * json_parse_ex (json_settings * settings,
 
             if (top->parent->type == json_array)
                flags |= flag_seek_value;
-               
+
             if (!state.first_pass)
             {
                json_value * parent = top->parent;
